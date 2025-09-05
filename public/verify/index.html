@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Verify Certificate</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      html, body { height: 100%; margin: 0; }
+      body { display: grid; place-items: center; font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: #111; }
+      .box { text-align: center; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; }
+      .muted { color: #6b7280; }
+      code { background: #f3f4f6; padding: 2px 4px; border-radius: 4px; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div id="status">Redirecting…</div>
+      <div class="muted">If nothing happens, check your link or contact the issuer.</div>
+    </div>
+    <script>
+      (function () {
+        try {
+          var url = new URL(window.location.href);
+          var cid = url.searchParams.get('cid');
+          // Base of the site (one level up from /verify/)
+          var basePath = new URL('..', window.location.href).pathname;
+          if (cid) {
+            var target = basePath + 'certs/' + encodeURIComponent(cid) + '.pdf';
+            // Use replace() to avoid keeping this page in history
+            window.location.replace(target);
+          } else {
+            document.getElementById('status').textContent = 'Missing certificate id (cid).';
+          }
+        } catch (e) {
+          document.getElementById('status').textContent = 'Invalid verification link.';
+        }
+      })();
+    </script>
+  </body>
+  </html>
+

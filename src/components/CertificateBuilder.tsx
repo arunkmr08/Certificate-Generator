@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import { QRCodeCanvas } from "qrcode.react";
 
 // Certificate Builder with selectable border styles
 
+type BorderStyleKey = "classic" | "ornamental" | "guilloche" | "ribbon" | "minimal" | "artdeco";
+
 export default function CertificateBuilder() {
-  const certRef = useRef(null);
+  const certRef = useRef<HTMLDivElement | null>(null);
 
   // --- Form State ---
   const [recipientName, setRecipientName] = useState("Arun M");
@@ -19,7 +19,7 @@ export default function CertificateBuilder() {
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null);
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [accent, setAccent] = useState("#2a6cea");
-  const [borderStyle, setBorderStyle] = useState("classic");
+  const [borderStyle, setBorderStyle] = useState<BorderStyleKey>("classic");
 
   const certificateId = useMemo(() => {
     const dt = new Date();
@@ -30,7 +30,12 @@ export default function CertificateBuilder() {
       .toUpperCase()}`;
   }, []);
 
-  const verifyUrl = useMemo(() => `https://example.org/verify?cid=${certificateId}`, [certificateId]);
+  const verifyBase = import.meta.env.VITE_VERIFY_BASE_URL || `${window.location.origin}${import.meta.env.BASE_URL}verify`;
+  const verifyUrl = useMemo(() => `${verifyBase}?cid=${certificateId}`, [certificateId, verifyBase]);
+  const pdfPublicUrl = useMemo(
+    () => `${window.location.origin}${import.meta.env.BASE_URL}certs/${encodeURIComponent(certificateId)}.pdf`,
+    [certificateId]
+  );
 
   // Helpers
   function fileToDataUrl(file: File): Promise<string> {
@@ -52,8 +57,10 @@ export default function CertificateBuilder() {
     fileToDataUrl(file).then(setSignatureDataUrl);
   }
   async function handleDownloadPdf() {
-    const node = certRef.current as unknown as HTMLElement | null;
+    const node = certRef.current;
     if (!node) return;
+    const { default: html2canvas } = await import("html2canvas");
+    const { default: jsPDF } = await import("jspdf");
     const canvas = await html2canvas(node, {
       scale: 2.5,
       useCORS: true,
@@ -110,6 +117,23 @@ export default function CertificateBuilder() {
     URL.revokeObjectURL(url);
   }
 
+  async function copyToClipboard(text: string) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {}
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch {}
+    document.body.removeChild(ta);
+    return true;
+  }
+
   function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
     return new Promise((resolve, reject) => {
       canvas.toBlob((blob) => {
@@ -120,10 +144,14 @@ export default function CertificateBuilder() {
   }
 
   async function buildEstimates() {
-    const node = certRef.current as unknown as HTMLElement | null;
+    const node = certRef.current;
     if (!node) return;
     setEstimating(true);
     try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
       // Capture two canvases: standard (higher scale) and optimized (lower scale)
       const [canvasStd, canvasOpt] = await Promise.all([
         html2canvas(node, { scale: 2.5, useCORS: true, backgroundColor: "#ffffff", logging: false }),
@@ -148,7 +176,7 @@ export default function CertificateBuilder() {
         const dataUrl = canvasStd.toDataURL("image/png");
         pdfStd.addImage(dataUrl, "PNG", 0, 0, w, h);
       }
-      const pdfStdBlob: Blob = (pdfStd as any).output("blob");
+      const pdfStdBlob: Blob = (pdfStd as unknown as { output: (t: "blob") => Blob }).output("blob");
 
       const pdfOpt = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       {
@@ -157,7 +185,7 @@ export default function CertificateBuilder() {
         const dataUrl = canvasOpt.toDataURL("image/jpeg", 0.82);
         pdfOpt.addImage(dataUrl, "JPEG", 0, 0, w, h);
       }
-      const pdfOptBlob: Blob = (pdfOpt as any).output("blob");
+      const pdfOptBlob: Blob = (pdfOpt as unknown as { output: (t: "blob") => Blob }).output("blob");
 
       // HTML snapshot (raw outerHTML for the certificate container)
       const htmlDoc = `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Certificate</title><style>html,body{margin:0;padding:0;background:#fff}</style></head><body>${
@@ -235,7 +263,7 @@ export default function CertificateBuilder() {
   }, [startDate]);
 
   // Border Styles
-  const borderStyles: Record<string, React.CSSProperties> = {
+  const borderStyles: Record<BorderStyleKey, React.CSSProperties> = {
     classic: {
       border: `10px double ${accent}`,
       background: "linear-gradient(180deg, #fff 0%, #fafbfe 100%)",
@@ -274,7 +302,7 @@ export default function CertificateBuilder() {
   };
 
   // Visual picker with mini previews (6 in a row)
-  const stylesList = [
+  const stylesList: ReadonlyArray<{ key: BorderStyleKey; label: string }> = [
     { key: "classic", label: "Classic" },
     { key: "ornamental", label: "Ornamental" },
     { key: "guilloche", label: "Guilloché" },
@@ -283,7 +311,7 @@ export default function CertificateBuilder() {
     { key: "artdeco", label: "Art Deco" },
   ] as const;
 
-  const BorderStylePicker: React.FC<{ value: string; onChange: (v: string) => void }> = ({ value, onChange }) => (
+  const BorderStylePicker: React.FC<{ value: BorderStyleKey; onChange: (v: BorderStyleKey) => void }> = ({ value, onChange }) => (
     <div className="grid grid-cols-6 gap-2">
       {stylesList.map((s) => (
         <button
@@ -298,7 +326,7 @@ export default function CertificateBuilder() {
         >
           <div
             className="mb-1 h-10 w-full rounded bg-white"
-            style={{ ...(borderStyles as any)[s.key], padding: "2px" }}
+            style={{ ...borderStyles[s.key], padding: "2px" }}
           />
           <div className="text-center truncate">{s.label}</div>
         </button>
@@ -333,6 +361,22 @@ export default function CertificateBuilder() {
                       {estimating ? 'Estimating…' : 'Recalculate'}
                     </button>
                   </div>
+                  <div className="mb-2 grid grid-cols-1 gap-2">
+                    <button
+                      onClick={async () => { await copyToClipboard(verifyUrl); setShowDownload(false); }}
+                      className="flex w-full items-center justify-between rounded-lg border border-neutral-300 px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                    >
+                      <span className="font-medium">Copy Verify Link</span>
+                      <span className="text-xs text-neutral-500 truncate max-w-[50%]">{verifyUrl}</span>
+                    </button>
+                    <button
+                      onClick={async () => { await copyToClipboard(pdfPublicUrl); setShowDownload(false); }}
+                      className="flex w-full items-center justify-between rounded-lg border border-neutral-300 px-3 py-2 text-left text-sm hover:bg-neutral-50"
+                    >
+                      <span className="font-medium">Copy Direct PDF Link</span>
+                      <span className="text-xs text-neutral-500 truncate max-w-[50%]">{pdfPublicUrl}</span>
+                    </button>
+                  </div>
                   <div className="grid grid-cols-1 gap-2">
                     {([
                       { key: 'pdf-standard', label: 'PDF Standard', ext: 'pdf' },
@@ -342,8 +386,8 @@ export default function CertificateBuilder() {
                       { key: 'webp', label: 'WEBP', ext: 'webp' },
                       { key: 'html', label: 'HTML', ext: 'html' },
                       { key: 'json', label: 'JSON', ext: 'json' },
-                    ] as Array<{ key: any; label: string; ext: string }>).map((opt) => {
-                      const blob = assets[opt.key as keyof typeof assets];
+                    ] as ReadonlyArray<{ key: FormatKey; label: string; ext: string }>).map((opt) => {
+                      const blob = assets[opt.key];
                       const unsupported = opt.key === 'webp' && !blob && !estimating; // after estimate, if still null
                       const sizeText = blob ? formatBytes(blob.size) : estimating ? 'Calculating…' : unsupported ? 'N/A' : '—';
                       const fileName = `Certificate-${recipientName.replace(/\s+/g, '_')}.${opt.ext}`;
