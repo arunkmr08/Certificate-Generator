@@ -12,7 +12,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // Register service worker (respect Vite base path)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = `${import.meta.env.BASE_URL}service-worker.js`;
-    navigator.serviceWorker.register(swUrl).catch(console.error);
+    // Append a version to force update on deploys
+    const swUrl = `${import.meta.env.BASE_URL}service-worker.js?v=4`;
+    navigator.serviceWorker.register(swUrl).catch(() => {});
   });
 }

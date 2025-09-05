@@ -1,4 +1,4 @@
-const CACHE_NAME = 'certgen-cache-v3';
+const CACHE_NAME = 'certgen-cache-v4';
 // Scope-aware asset URLs for GitHub Pages subpath deployments
 const SCOPE = self.registration?.scope || '/';
 const ASSETS = [
