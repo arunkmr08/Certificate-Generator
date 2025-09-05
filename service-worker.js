@@ -1,8 +1,10 @@
-const CACHE_NAME = 'certgen-cache-v1';
+const CACHE_NAME = 'certgen-cache-v2';
+// Scope-aware asset URLs for GitHub Pages subpath deployments
+const SCOPE = self.registration?.scope || '/';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json'
+  SCOPE,
+  SCOPE + 'index.html',
+  SCOPE + 'manifest.json',
 ];
 
 self.addEventListener('install', (event) => {

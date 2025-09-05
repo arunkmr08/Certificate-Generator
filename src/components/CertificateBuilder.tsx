@@ -162,7 +162,7 @@ export default function CertificateBuilder() {
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+        <div className="flex w-full items-center justify-between px-4 py-3">
           <h1 className="text-lg font-semibold tracking-tight">Certificate Generator</h1>
           <button
             onClick={handleDownloadPdf}
@@ -173,7 +173,7 @@ export default function CertificateBuilder() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-4 lg:grid-cols-12">
+      <main className="grid w-full grid-cols-1 gap-6 p-4 lg:grid-cols-12">
         {/* Left Controls */}
         <section className="lg:col-span-4">
           <div className="rounded-3xl border bg-white p-4 shadow-sm">
@@ -231,7 +231,7 @@ export default function CertificateBuilder() {
         <section className="lg:col-span-8">
           <div className="rounded-3xl border bg-white p-4 shadow-sm">
             <h2 className="mb-3 text-base font-semibold">Preview</h2>
-            <div className="relative mx-auto aspect-[1.414/1] w-full max-w-4xl">
+            <div className="relative aspect-[1.414/1] w-full">
               <div ref={certRef} className="absolute inset-0 bg-white" style={{ padding: "32px", ...borderStyles[borderStyle] }}>
                 <div className="flex h-full flex-col justify-between p-8">
                   {/* Header */}
