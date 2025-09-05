@@ -232,8 +232,8 @@ export default function CertificateBuilder() {
           <div className="rounded-3xl border bg-white p-4 shadow-sm">
             <h2 className="mb-3 text-base font-semibold">Preview</h2>
             <div className="relative aspect-[1.414/1] w-full">
-              <div ref={certRef} className="absolute inset-0 bg-white" style={{ padding: "32px", ...borderStyles[borderStyle] }}>
-                <div className="flex h-full flex-col justify-between p-8">
+              <div ref={certRef} className="absolute inset-2 sm:inset-4 md:inset-6 bg-white" style={{ padding: "16px", ...borderStyles[borderStyle] }}>
+                <div className="flex h-full flex-col justify-between p-4 sm:p-6">
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
