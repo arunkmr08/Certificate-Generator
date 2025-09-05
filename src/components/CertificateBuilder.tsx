@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { QRCodeCanvas } from "qrcode.react";
@@ -67,6 +67,153 @@ export default function CertificateBuilder() {
     pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
     pdf.save(`Certificate-${recipientName.replace(/\s+/g, "_")}.pdf`);
   }
+
+  // ---------------- Download Dialog (multi-format) ----------------
+  type FormatKey =
+    | "pdf-standard"
+    | "pdf-optimized"
+    | "png"
+    | "jpeg"
+    | "webp"
+    | "html"
+    | "json";
+
+  const [showDownload, setShowDownload] = useState(false);
+  const [estimating, setEstimating] = useState(false);
+  const [assets, setAssets] = useState<Record<FormatKey, Blob | null>>({
+    "pdf-standard": null,
+    "pdf-optimized": null,
+    png: null,
+    jpeg: null,
+    webp: null,
+    html: null,
+    json: null,
+  });
+
+  function formatBytes(bytes: number) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"] as const;
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    const val = bytes / Math.pow(k, i);
+    return `${val.toFixed(val >= 100 || i === 0 ? 0 : 1)} ${sizes[i]}`;
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Failed to create blob"));
+      }, type, quality);
+    });
+  }
+
+  async function buildEstimates() {
+    const node = certRef.current as unknown as HTMLElement | null;
+    if (!node) return;
+    setEstimating(true);
+    try {
+      // Capture two canvases: standard (higher scale) and optimized (lower scale)
+      const [canvasStd, canvasOpt] = await Promise.all([
+        html2canvas(node, { scale: 2.5, useCORS: true, backgroundColor: "#ffffff", logging: false }),
+        html2canvas(node, { scale: 1.8, useCORS: true, backgroundColor: "#ffffff", logging: false }),
+      ]);
+
+      // Image blobs
+      const pngBlob = await canvasToBlob(canvasStd, "image/png");
+      const jpegBlob = await canvasToBlob(canvasStd, "image/jpeg", 0.9);
+      let webpBlob: Blob | null = null;
+      try {
+        webpBlob = await canvasToBlob(canvasStd, "image/webp", 0.9);
+      } catch {
+        webpBlob = null; // Browser may not support WEBP encoding
+      }
+
+      // PDF blobs (standard uses PNG @2.5; optimized uses JPEG @1.8)
+      const pdfStd = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      {
+        const w = pdfStd.internal.pageSize.getWidth();
+        const h = pdfStd.internal.pageSize.getHeight();
+        const dataUrl = canvasStd.toDataURL("image/png");
+        pdfStd.addImage(dataUrl, "PNG", 0, 0, w, h);
+      }
+      const pdfStdBlob: Blob = (pdfStd as any).output("blob");
+
+      const pdfOpt = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      {
+        const w = pdfOpt.internal.pageSize.getWidth();
+        const h = pdfOpt.internal.pageSize.getHeight();
+        const dataUrl = canvasOpt.toDataURL("image/jpeg", 0.82);
+        pdfOpt.addImage(dataUrl, "JPEG", 0, 0, w, h);
+      }
+      const pdfOptBlob: Blob = (pdfOpt as any).output("blob");
+
+      // HTML snapshot (raw outerHTML for the certificate container)
+      const htmlDoc = `<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Certificate</title><style>html,body{margin:0;padding:0;background:#fff}</style></head><body>${
+        (node as HTMLElement).outerHTML
+      }</body></html>`;
+      const htmlBlob = new Blob([htmlDoc], { type: "text/html" });
+
+      // JSON export of the form state
+      const json = {
+        recipientName,
+        courseTitle,
+        issuerName,
+        instructorName,
+        instructorTitle,
+        startDate,
+        completionDate,
+        accent,
+        borderStyle,
+        certificateId,
+        verifyUrl,
+        logoDataUrl,
+        signatureDataUrl,
+      };
+      const jsonBlob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+
+      setAssets({
+        "pdf-standard": pdfStdBlob,
+        "pdf-optimized": pdfOptBlob,
+        png: pngBlob,
+        jpeg: jpegBlob,
+        webp: webpBlob,
+        html: htmlBlob,
+        json: jsonBlob,
+      });
+    } finally {
+      setEstimating(false);
+    }
+  }
+
+  useEffect(() => {
+    if (showDownload) {
+      // Reset previous assets and estimate on open
+      setAssets({
+        "pdf-standard": null,
+        "pdf-optimized": null,
+        png: null,
+        jpeg: null,
+        webp: null,
+        html: null,
+        json: null,
+      });
+      // Kick off estimation asynchronously
+      buildEstimates();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDownload]);
 
   const formattedDate = useMemo(() => {
     try {
@@ -164,12 +311,60 @@ export default function CertificateBuilder() {
       <header className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
         <div className="flex w-full items-center justify-between px-4 py-3">
           <h1 className="text-lg font-semibold tracking-tight">Certificate Generator</h1>
-          <button
-            onClick={handleDownloadPdf}
-            className="rounded-2xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
-          >
-            Download PDF
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowDownload((v) => !v)}
+              className="rounded-2xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100"
+              aria-haspopup="menu"
+              aria-expanded={showDownload}
+            >
+              Download
+            </button>
+            {showDownload && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowDownload(false)} />
+                <div className="absolute right-0 z-50 mt-2 w-[24rem] max-w-[90vw] rounded-xl border bg-white p-3 shadow-xl">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="text-sm font-semibold">Download Options</div>
+                    <button
+                      onClick={buildEstimates}
+                      className="rounded border border-neutral-300 px-2 py-0.5 text-xs hover:bg-neutral-100"
+                    >
+                      {estimating ? 'Estimating…' : 'Recalculate'}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {([
+                      { key: 'pdf-standard', label: 'PDF Standard', ext: 'pdf' },
+                      { key: 'pdf-optimized', label: 'PDF Optimized', ext: 'pdf' },
+                      { key: 'png', label: 'PNG', ext: 'png' },
+                      { key: 'jpeg', label: 'JPEG', ext: 'jpg' },
+                      { key: 'webp', label: 'WEBP', ext: 'webp' },
+                      { key: 'html', label: 'HTML', ext: 'html' },
+                      { key: 'json', label: 'JSON', ext: 'json' },
+                    ] as Array<{ key: any; label: string; ext: string }>).map((opt) => {
+                      const blob = assets[opt.key as keyof typeof assets];
+                      const unsupported = opt.key === 'webp' && !blob && !estimating; // after estimate, if still null
+                      const sizeText = blob ? formatBytes(blob.size) : estimating ? 'Calculating…' : unsupported ? 'N/A' : '—';
+                      const fileName = `Certificate-${recipientName.replace(/\s+/g, '_')}.${opt.ext}`;
+                      return (
+                        <button
+                          key={opt.key}
+                          disabled={!blob}
+                          onClick={() => blob && downloadBlob(blob, fileName)}
+                          className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm ${blob ? 'border-neutral-300 hover:bg-neutral-50' : 'border-neutral-200 text-neutral-400 cursor-not-allowed'}`}
+                          role="menuitem"
+                        >
+                          <span className="font-medium">{opt.label}</span>
+                          <span className="text-xs text-neutral-500">{sizeText}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -288,6 +483,8 @@ export default function CertificateBuilder() {
           </div>
         </section>
       </main>
+
+      
     </div>
   );
 }
