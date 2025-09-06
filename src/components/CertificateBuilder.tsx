@@ -108,6 +108,52 @@ export default function CertificateBuilder() {
     json: null,
   });
 
+  // Optional publishing state (for auto-uploading PDFs to /certs via serverless)
+  const [publishing, setPublishing] = useState(false);
+  const [publishMsg, setPublishMsg] = useState<string | null>(null);
+  const publishEndpoint = import.meta.env.VITE_PUBLISH_ENDPOINT as string | undefined;
+  const publishApiKey = import.meta.env.VITE_PUBLISH_API_KEY as string | undefined;
+  const publishOnPdf = (import.meta.env.VITE_PUBLISH_ON_PDF as string | undefined) === '1';
+
+  async function blobToBase64(blob: Blob): Promise<string> {
+    const buf = await blob.arrayBuffer();
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  async function tryPublishPdf(blob: Blob) {
+    if (!publishEndpoint) return; // publishing disabled
+    try {
+      setPublishing(true);
+      setPublishMsg('Publishing…');
+      const contentBase64 = await blobToBase64(blob);
+      const filename = `${certificateId}.pdf`;
+      const resp = await fetch(publishEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(publishApiKey ? { 'x-api-key': publishApiKey } : {}),
+        },
+        body: JSON.stringify({ certificateId, filename, contentBase64 }),
+      });
+      if (resp.ok) {
+        setPublishMsg('Published to /certs successfully');
+      } else {
+        const text = await resp.text().catch(() => '');
+        setPublishMsg(`Publish failed (${resp.status}) ${text ? '- ' + text : ''}`);
+      }
+    } catch (e) {
+      setPublishMsg('Publish failed');
+    } finally {
+      setPublishing(false);
+      // Hide message after a short delay
+      setTimeout(() => setPublishMsg(null), 4000);
+    }
+  }
+
   function formatBytes(bytes: number) {
     if (bytes === 0) return "0 B";
     const k = 1024;
@@ -486,7 +532,14 @@ export default function CertificateBuilder() {
                         <button
                           key={opt.key}
                           disabled={!blob}
-                          onClick={() => blob && downloadBlob(blob, fileName)}
+                          onClick={async () => {
+                            if (!blob) return;
+                            downloadBlob(blob, fileName);
+                            if (publishOnPdf && (opt.key === 'pdf-standard' || opt.key === 'pdf-optimized')) {
+                              // Fire-and-forget publish; do not block UI
+                              tryPublishPdf(blob);
+                            }
+                          }}
                           className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm ${blob ? 'border-neutral-300 hover:bg-neutral-50' : 'border-neutral-200 text-neutral-400 cursor-not-allowed'}`}
                           role="menuitem"
                         >
@@ -496,6 +549,9 @@ export default function CertificateBuilder() {
                       );
                     })}
                   </div>
+                  {!!publishMsg && (
+                    <div className="mt-2 text-xs text-neutral-500">{publishMsg}</div>
+                  )}
                 </div>
               </>
             )}
