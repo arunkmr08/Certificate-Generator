@@ -4,6 +4,7 @@ import { QRCodeCanvas } from "qrcode.react";
 // Certificate Builder with selectable border styles
 
 type BorderStyleKey = "classic" | "ornamental" | "guilloche" | "ribbon" | "minimal" | "artdeco";
+type TemplateKey = "classic" | "linkedin" | "microsoft" | "udemy" | "sports" | "college";
 
 export default function CertificateBuilder() {
   const certRef = useRef<HTMLDivElement | null>(null);
@@ -20,6 +21,11 @@ export default function CertificateBuilder() {
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [accent, setAccent] = useState("#2a6cea");
   const [borderStyle, setBorderStyle] = useState<BorderStyleKey>("classic");
+  const [template, setTemplate] = useState<TemplateKey>("classic");
+  const [headingFont, setHeadingFont] = useState<string>("Poppins, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif");
+  const [bodyFont, setBodyFont] = useState<string>("Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif");
+  const [shieldDataUrl, setShieldDataUrl] = useState<string | null>(null);
+  const [showShield, setShowShield] = useState<boolean>(false);
 
   const certificateId = useMemo(() => {
     const dt = new Date();
@@ -55,6 +61,11 @@ export default function CertificateBuilder() {
     const file = e.target.files?.[0];
     if (!file) return;
     fileToDataUrl(file).then(setSignatureDataUrl);
+  }
+  function handleShieldChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    fileToDataUrl(file).then((url) => { setShieldDataUrl(url); setShowShield(true); });
   }
   async function handleDownloadPdf() {
     const node = certRef.current;
@@ -204,10 +215,15 @@ export default function CertificateBuilder() {
         completionDate,
         accent,
         borderStyle,
+        template,
+        headingFont,
+        bodyFont,
         certificateId,
         verifyUrl,
         logoDataUrl,
         signatureDataUrl,
+        shieldDataUrl,
+        showShield,
       };
       const jsonBlob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
 
@@ -301,6 +317,39 @@ export default function CertificateBuilder() {
     },
   };
 
+  // Template decorations layered on top of border style
+  const templateStyles: Record<TemplateKey, React.CSSProperties> = {
+    classic: {},
+    linkedin: {
+      boxShadow: `inset 0 8px 0 0 ${accent}`,
+      backgroundImage: `linear-gradient(180deg, #fff 0%, #fafbfe 100%)`,
+    },
+    microsoft: {
+      backgroundImage: `
+        linear-gradient(180deg, #fff 0%, #f9fafb 100%),
+        radial-gradient(circle at 1px 1px, rgba(0,0,0,0.06) 1px, transparent 1px)
+      `,
+      backgroundSize: `auto, 24px 24px`,
+    },
+    udemy: {
+      boxShadow: `inset 0 -8px 0 0 ${accent}`,
+      backgroundImage: `linear-gradient(180deg, #fff 0%, #fefefe 100%)`,
+    },
+    sports: {
+      backgroundImage: `
+        linear-gradient(180deg, #fff 0%, #fdfdfd 100%),
+        repeating-linear-gradient(45deg, ${accent}14 0 8px, transparent 8px 16px)
+      `,
+      backgroundSize: `auto, auto`,
+    },
+    college: {
+      backgroundImage: `
+        radial-gradient(circle at 30% 20%, #f8f5ec 0%, #ffffff 60%),
+        radial-gradient(circle at 70% 80%, #f3efe2 0%, #ffffff 60%)
+      `,
+    },
+  };
+
   // Visual picker with mini previews (6 in a row)
   const stylesList: ReadonlyArray<{ key: BorderStyleKey; label: string }> = [
     { key: "classic", label: "Classic" },
@@ -333,6 +382,46 @@ export default function CertificateBuilder() {
       ))}
     </div>
   );
+
+  const templatesList: ReadonlyArray<{ key: TemplateKey; label: string }> = [
+    { key: 'classic', label: 'Classic' },
+    { key: 'linkedin', label: 'LinkedIn' },
+    { key: 'microsoft', label: 'Microsoft' },
+    { key: 'udemy', label: 'Udemy' },
+    { key: 'sports', label: 'Sports' },
+    { key: 'college', label: 'College' },
+  ] as const;
+
+  const TemplatePicker: React.FC<{ value: TemplateKey; onChange: (v: TemplateKey) => void }> = ({ value, onChange }) => (
+    <div className="grid grid-cols-6 gap-2">
+      {templatesList.map((t) => (
+        <button
+          type="button"
+          key={t.key}
+          onClick={() => onChange(t.key)}
+          aria-pressed={value === t.key}
+          className={`group rounded border p-1 text-[10px] transition ${
+            value === t.key ? "ring-2 ring-neutral-800 border-neutral-800" : "border-neutral-300 hover:border-neutral-400"
+          }`}
+          title={t.label}
+        >
+          <div className="mb-1 h-10 w-full rounded bg-white" style={{ ...(templateStyles as any)[t.key], padding: '2px' }} />
+          <div className="text-center truncate">{t.label}</div>
+        </button>
+      ))}
+    </div>
+  );
+
+  const FONT_OPTIONS: ReadonlyArray<{ key: string; label: string; family: string }> = [
+    { key: 'system-sans', label: 'System Sans', family: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' },
+    { key: 'system-serif', label: 'System Serif', family: 'Georgia, Cambria, "Times New Roman", Times, serif' },
+    { key: 'inter', label: 'Inter', family: 'Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' },
+    { key: 'poppins', label: 'Poppins', family: 'Poppins, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif' },
+    { key: 'playfair', label: 'Playfair Display', family: '"Playfair Display", serif' },
+    { key: 'merriweather', label: 'Merriweather', family: 'Merriweather, serif' },
+    { key: 'lora', label: 'Lora', family: 'Lora, serif' },
+    { key: 'roboto-slab', label: 'Roboto Slab', family: '"Roboto Slab", serif' },
+  ] as const;
 
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
@@ -458,9 +547,39 @@ export default function CertificateBuilder() {
                 <span>Accent Color</span>
                 <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} />
               </label>
+              <label className="grid gap-1 text-sm">
+                <span>Heading Font</span>
+                <select className="rounded border px-3 py-2" value={headingFont} onChange={(e) => setHeadingFont(e.target.value)}>
+                  {FONT_OPTIONS.map((f) => (
+                    <option key={f.key} value={f.family}>{f.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span>Body Font</span>
+                <select className="rounded border px-3 py-2" value={bodyFont} onChange={(e) => setBodyFont(e.target.value)}>
+                  {FONT_OPTIONS.map((f) => (
+                    <option key={f.key} value={f.family}>{f.label}</option>
+                  ))}
+                </select>
+              </label>
               <div className="col-span-2 grid gap-1 text-sm">
                 <span>Border Style</span>
                 <BorderStylePicker value={borderStyle} onChange={setBorderStyle} />
+              </div>
+              <div className="col-span-2 grid gap-1 text-sm">
+                <span>Template</span>
+                <TemplatePicker value={template} onChange={setTemplate} />
+              </div>
+              <div className="col-span-2 grid gap-1 text-sm">
+                <span>Certificate Shield</span>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2">
+                    <input type="checkbox" checked={showShield} onChange={(e) => setShowShield(e.target.checked)} />
+                    <span>Show</span>
+                  </label>
+                  <input type="file" accept="image/*" onChange={handleShieldChange} />
+                </div>
               </div>
             </div>
           </div>
@@ -474,9 +593,9 @@ export default function CertificateBuilder() {
               <div
                 ref={certRef}
                 className="absolute inset-0 bg-white"
-                style={{ padding: '6%' }}
+                style={{ padding: '6%', fontFamily: bodyFont }}
               >
-                <div className="h-full w-full bg-white" style={{ ...borderStyles[borderStyle], padding: '5%', boxSizing: 'border-box' }}>
+                <div className="h-full w-full bg-white" style={{ ...borderStyles[borderStyle], ...(templateStyles as any)[template], padding: '5%', boxSizing: 'border-box' }}>
                   <div className="flex h-full flex-col justify-between">
                   {/* Header */}
                   <div className="flex items-center justify-between">
@@ -496,11 +615,23 @@ export default function CertificateBuilder() {
 
                   {/* Body */}
                   <div className="mx-auto w-full max-w-[85%] text-center">
+                    {showShield && (
+                      <div className="mx-auto mb-2 h-16 w-16">
+                        {shieldDataUrl ? (
+                          <img src={shieldDataUrl} alt="Shield" className="h-full w-full object-contain" />
+                        ) : (
+                          <svg viewBox="0 0 24 24" className="h-full w-full" aria-hidden="true">
+                            <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" fill={accent} opacity="0.9" />
+                            <path d="M12 4l6 3v5c0 3.9-2.8 7-6 7s-6-3.1-6-7V7l6-3z" fill="#ffffff" opacity="0.6" />
+                          </svg>
+                        )}
+                      </div>
+                    )}
                     <div className="mx-auto mb-4 h-1 w-24" style={{ background: accent }} />
                     <div className="text-xs uppercase tracking-[0.25em] text-neutral-500">Certificate of Completion</div>
-                    <h3 className="mt-2 font-serif text-4xl font-bold leading-tight text-neutral-900">{recipientName}</h3>
+                    <h3 className="mt-2 text-4xl font-bold leading-tight text-neutral-900" style={{ fontFamily: headingFont }}>{recipientName}</h3>
                     <p className="mt-3 text-sm text-neutral-600">has successfully completed the course</p>
-                    <p className="mt-2 font-serif text-2xl italic text-neutral-900">“{courseTitle}”</p>
+                    <p className="mt-2 text-2xl italic text-neutral-900" style={{ fontFamily: headingFont }}>“{courseTitle}”</p>
                     <p className="mt-3 text-sm text-neutral-600">{formattedStartDate && `Started on ${formattedStartDate} and `}Completed on {formattedDate}</p>
                   </div>
 
