@@ -567,92 +567,111 @@ export default function CertificateBuilder() {
       <main className="grid w-full grid-cols-1 gap-6 p-4 lg:grid-cols-12">
         {/* Left Controls */}
         <section className="lg:col-span-4">
-          <div className="rounded-3xl border bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-base font-semibold">Details</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-1 text-sm">
-                <span>Issuer / Organization Name</span>
-                <input value={issuerName} onChange={(e) => setIssuerName(e.target.value)} className="rounded border px-3 py-2" />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Recipient Name</span>
-                <input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} className="rounded border px-3 py-2" />
-              </label>
-              <label className="col-span-2 grid gap-1 text-sm">
-                <span>Course Title</span>
-                <input value={courseTitle} onChange={(e) => setCourseTitle(e.target.value)} className="rounded border px-3 py-2" />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Start Date (optional)</span>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded border px-3 py-2" />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Completion Date</span>
-                <input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} className="rounded border px-3 py-2" />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Instructor Name</span>
-                <input value={instructorName} onChange={(e) => setInstructorName(e.target.value)} className="rounded border px-3 py-2" />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Instructor Title</span>
-                <input value={instructorTitle} onChange={(e) => setInstructorTitle(e.target.value)} className="rounded border px-3 py-2" />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Logo</span>
-                <input type="file" accept="image/*" onChange={handleLogoChange} />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Signature</span>
-                <input type="file" accept="image/*" onChange={handleSignatureChange} />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Accent Color</span>
-                <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Heading Font</span>
-                <select className="rounded border px-3 py-2" value={headingFont} onChange={(e) => setHeadingFont(e.target.value)}>
-                  {FONT_OPTIONS.map((f) => (
-                    <option key={f.key} value={f.family}>{f.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span>Body Font</span>
-                <select className="rounded border px-3 py-2" value={bodyFont} onChange={(e) => setBodyFont(e.target.value)}>
-                  {FONT_OPTIONS.map((f) => (
-                    <option key={f.key} value={f.family}>{f.label}</option>
-                  ))}
-                </select>
-              </label>
-              <div className="col-span-2 grid gap-1 text-sm">
-                <span>Border Style</span>
-                <BorderStylePicker value={borderStyle} onChange={setBorderStyle} />
+          <div className="space-y-4">
+            {/* Issuer & Recipient */}
+            <div className="rounded-3xl border bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold">Issuer & Recipient</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="grid gap-1 text-sm">
+                  <span>Issuer / Organization Name</span>
+                  <input value={issuerName} onChange={(e) => setIssuerName(e.target.value)} className="rounded border px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Recipient Name</span>
+                  <input value={recipientName} onChange={(e) => setRecipientName(e.target.value)} className="rounded border px-3 py-2" />
+                </label>
               </div>
-              <div className="col-span-2 grid gap-1 text-sm">
-                <span>Template</span>
-                <TemplatePicker value={template} onChange={setTemplate} />
+            </div>
+
+            {/* Course & Dates */}
+            <div className="rounded-3xl border bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold">Course & Dates</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="col-span-2 grid gap-1 text-sm">
+                  <span>Course Title</span>
+                  <input value={courseTitle} onChange={(e) => setCourseTitle(e.target.value)} className="rounded border px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Start Date (optional)</span>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded border px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Completion Date</span>
+                  <input type="date" value={completionDate} onChange={(e) => setCompletionDate(e.target.value)} className="rounded border px-3 py-2" />
+                </label>
               </div>
-              <div className="col-span-2 grid gap-1 text-sm">
-                <span>Certificate Shield</span>
-                <div className="flex flex-col gap-2">
+            </div>
+
+            {/* Instructor */}
+            <div className="rounded-3xl border bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold">Instructor</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="grid gap-1 text-sm">
+                  <span>Instructor Name</span>
+                  <input value={instructorName} onChange={(e) => setInstructorName(e.target.value)} className="rounded border px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Instructor Title</span>
+                  <input value={instructorTitle} onChange={(e) => setInstructorTitle(e.target.value)} className="rounded border px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Signature</span>
+                  <input type="file" accept="image/*" onChange={handleSignatureChange} />
+                </label>
+              </div>
+            </div>
+
+            {/* Branding */}
+            <div className="rounded-3xl border bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold">Branding</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="grid gap-1 text-sm">
+                  <span>Logo</span>
+                  <input type="file" accept="image/*" onChange={handleLogoChange} />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Accent Color</span>
+                  <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} />
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Heading Font</span>
+                  <select className="rounded border px-3 py-2" value={headingFont} onChange={(e) => setHeadingFont(e.target.value)}>
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f.key} value={f.family}>{f.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm">
+                  <span>Body Font</span>
+                  <select className="rounded border px-3 py-2" value={bodyFont} onChange={(e) => setBodyFont(e.target.value)}>
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f.key} value={f.family}>{f.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            {/* Design */}
+            <div className="rounded-3xl border bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-base font-semibold">Design</h2>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="grid gap-1 text-sm">
+                  <span>Border Style</span>
+                  <BorderStylePicker value={borderStyle} onChange={setBorderStyle} />
+                </div>
+                <div className="grid gap-1 text-sm">
+                  <span>Template</span>
+                  <TemplatePicker value={template} onChange={setTemplate} />
+                </div>
+                <div className="grid gap-1 text-sm">
+                  <span>Certificate Shield</span>
                   <div className="flex items-center gap-3">
                     <label className="inline-flex items-center gap-2">
                       <input type="checkbox" checked={showShield} onChange={(e) => setShowShield(e.target.checked)} />
                       <span>Show</span>
                     </label>
                     <input type="file" accept="image/*" onChange={handleShieldChange} />
-                  </div>
-                  <input
-                    type="url"
-                    placeholder="Shield image URL (optional)"
-                    className="rounded border px-3 py-2"
-                    value={shieldUrl}
-                    onChange={(e) => { setShieldUrl(e.target.value); if (e.target.value) setShowShield(true); }}
-                  />
-                  <div className="text-xs text-neutral-500">
-                    Tip: For best export results, use an uploaded image or a URL that serves the image with CORS enabled. Otherwise, browser security may block rendering in downloads.
                   </div>
                 </div>
               </div>
