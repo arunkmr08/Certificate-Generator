@@ -567,7 +567,7 @@ export default function CertificateBuilder() {
       <main className="grid w-full grid-cols-1 gap-6 p-4 lg:grid-cols-12">
         {/* Left Controls */}
         <section className="lg:col-span-4">
-          <div className="space-y-4">
+          <div className="sticky top-16 max-h-[calc(100vh-6rem)] overflow-y-auto space-y-4 pr-2">
             {/* Issuer & Recipient */}
             <div className="rounded-3xl border bg-white p-4 shadow-sm">
               <h2 className="mb-3 text-base font-semibold">Issuer & Recipient</h2>
@@ -666,12 +666,24 @@ export default function CertificateBuilder() {
                 </div>
                 <div className="grid gap-1 text-sm">
                   <span>Certificate Shield</span>
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-2">
-                      <input type="checkbox" checked={showShield} onChange={(e) => setShowShield(e.target.checked)} />
-                      <span>Show</span>
-                    </label>
-                    <input type="file" accept="image/*" onChange={handleShieldChange} />
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <label className="inline-flex items-center gap-2">
+                        <input type="checkbox" checked={showShield} onChange={(e) => setShowShield(e.target.checked)} />
+                        <span>Show</span>
+                      </label>
+                      <input type="file" accept="image/*" onChange={handleShieldChange} />
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="Shield image URL (optional)"
+                      className="rounded border px-3 py-2"
+                      value={shieldUrl}
+                      onChange={(e) => { setShieldUrl(e.target.value); if (e.target.value) setShowShield(true); }}
+                    />
+                    <div className="text-xs text-neutral-500">
+                      For best exports, prefer uploaded images or same-origin URLs with CORS enabled.
+                    </div>
                   </div>
                 </div>
               </div>
