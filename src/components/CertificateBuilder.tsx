@@ -26,6 +26,9 @@ export default function CertificateBuilder() {
   const [bodyFont, setBodyFont] = useState<string>("Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif");
   const [shieldDataUrl, setShieldDataUrl] = useState<string | null>(null);
   const [showShield, setShowShield] = useState<boolean>(false);
+  const [shieldUrl, setShieldUrl] = useState<string>("");
+  const [shieldBroken, setShieldBroken] = useState<boolean>(false);
+  const defaultShieldUrl = "https://www.google.com/url?sa=i&url=https%3A%2F%2Fdepositphotos.com%2Fvectors%2Fcertification-badge.html&psig=AOvVaw0Z0xgxUYi9MNi63_zSIg2W&ust=1757220254827000&source=images&cd=vfe&opi=89978449&ved=0CBUQjRxqFwoTCJDKiOCpw48DFQAAAAAdAAAAABAE";
 
   const certificateId = useMemo(() => {
     const dt = new Date();
@@ -67,6 +70,7 @@ export default function CertificateBuilder() {
     if (!file) return;
     fileToDataUrl(file).then((url) => { setShieldDataUrl(url); setShowShield(true); });
   }
+  useEffect(() => { setShieldBroken(false); }, [shieldDataUrl, shieldUrl]);
   async function handleDownloadPdf() {
     const node = certRef.current;
     if (!node) return;
@@ -268,6 +272,7 @@ export default function CertificateBuilder() {
         verifyUrl,
         logoDataUrl,
         signatureDataUrl,
+        shieldUrl,
         shieldDataUrl,
         showShield,
       };
@@ -631,12 +636,24 @@ export default function CertificateBuilder() {
               </div>
               <div className="col-span-2 grid gap-1 text-sm">
                 <span>Certificate Shield</span>
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={showShield} onChange={(e) => setShowShield(e.target.checked)} />
-                    <span>Show</span>
-                  </label>
-                  <input type="file" accept="image/*" onChange={handleShieldChange} />
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center gap-2">
+                      <input type="checkbox" checked={showShield} onChange={(e) => setShowShield(e.target.checked)} />
+                      <span>Show</span>
+                    </label>
+                    <input type="file" accept="image/*" onChange={handleShieldChange} />
+                  </div>
+                  <input
+                    type="url"
+                    placeholder="Shield image URL (optional)"
+                    className="rounded border px-3 py-2"
+                    value={shieldUrl}
+                    onChange={(e) => { setShieldUrl(e.target.value); if (e.target.value) setShowShield(true); }}
+                  />
+                  <div className="text-xs text-neutral-500">
+                    Tip: For best export results, use an uploaded image or a URL that serves the image with CORS enabled. Otherwise, browser security may block rendering in downloads.
+                  </div>
                 </div>
               </div>
             </div>
@@ -675,13 +692,19 @@ export default function CertificateBuilder() {
                   <div className="mx-auto w-full max-w-[85%] text-center">
                     {showShield && (
                       <div className="mx-auto mb-2 h-16 w-16">
-                        {shieldDataUrl ? (
-                          <img src={shieldDataUrl} alt="Shield" className="h-full w-full object-contain" />
-                        ) : (
+                        {!(shieldDataUrl || shieldUrl || defaultShieldUrl) || shieldBroken ? (
                           <svg viewBox="0 0 24 24" className="h-full w-full" aria-hidden="true">
                             <path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z" fill={accent} opacity="0.9" />
                             <path d="M12 4l6 3v5c0 3.9-2.8 7-6 7s-6-3.1-6-7V7l6-3z" fill="#ffffff" opacity="0.6" />
                           </svg>
+                        ) : (
+                          <img
+                            src={shieldDataUrl || shieldUrl || defaultShieldUrl}
+                            alt="Shield"
+                            className="h-full w-full object-contain"
+                            crossOrigin="anonymous"
+                            onError={() => setShieldBroken(true)}
+                          />
                         )}
                       </div>
                     )}
