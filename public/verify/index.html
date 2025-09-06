@@ -20,6 +20,7 @@
     </div>
     <script>
       (function () {
+        var statusEl = document.getElementById('status');
         try {
           var url = new URL(window.location.href);
           var cid = url.searchParams.get('cid');
@@ -27,16 +28,25 @@
           var basePath = new URL('..', window.location.href).pathname;
           if (cid) {
             var target = basePath + 'certs/' + encodeURIComponent(cid) + '.pdf';
-            // Use replace() to avoid keeping this page in history
-            window.location.replace(target);
+            // Probe the target first to avoid sending users to a Pages 404
+            fetch(target, { method: 'HEAD', cache: 'no-store' })
+              .then(function (resp) {
+                if (resp && resp.ok) {
+                  window.location.replace(target);
+                } else {
+                  statusEl.textContent = 'Certificate not found. Ask the issuer to publish ' + cid + '.pdf under /certs/';
+                }
+              })
+              .catch(function () {
+                statusEl.textContent = 'Unable to reach certificate. Check your connection or try again later.';
+              });
           } else {
-            document.getElementById('status').textContent = 'Missing certificate id (cid).';
+            statusEl.textContent = 'Missing certificate id (cid).';
           }
         } catch (e) {
-          document.getElementById('status').textContent = 'Invalid verification link.';
+          statusEl.textContent = 'Invalid verification link.';
         }
       })();
     </script>
   </body>
   </html>
-

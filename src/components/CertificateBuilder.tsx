@@ -479,7 +479,9 @@ export default function CertificateBuilder() {
                       const blob = assets[opt.key];
                       const unsupported = opt.key === 'webp' && !blob && !estimating; // after estimate, if still null
                       const sizeText = blob ? formatBytes(blob.size) : estimating ? 'Calculating…' : unsupported ? 'N/A' : '—';
-                      const fileName = `Certificate-${recipientName.replace(/\s+/g, '_')}.${opt.ext}`;
+                      const useCidName = opt.key === 'pdf-standard' || opt.key === 'pdf-optimized';
+                      const baseName = useCidName ? certificateId : `Certificate-${recipientName.replace(/\s+/g, '_')}`;
+                      const fileName = `${baseName}.${opt.ext}`;
                       return (
                         <button
                           key={opt.key}
